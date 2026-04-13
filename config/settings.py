@@ -10,6 +10,15 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# .env faylini yuklash
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+# Endi os.getenv orqali ma'lumotlarni o'qiymiz
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_USERNAME = os.getenv("BOT_USERNAME")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
@@ -43,6 +52,9 @@ DJANGO_APPS = [
 LOCAL_APPS = [
     'account',
     'common',
+    'product',
+    'usage',
+    'shop_bot'
 ]
 
 EXTERNAL_APPS = [
