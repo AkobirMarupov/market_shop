@@ -2,7 +2,7 @@ from rest_framework import serializers
 from usage.models import Usage, UsageLink, LinkConnect
 from product.models import Product
 
-# 1. UsageLink Serializer (Telegram havolalar uchun)
+
 class UsageLinkSerializer(serializers.ModelSerializer):
     class Meta:
         model = UsageLink
@@ -19,10 +19,14 @@ class UsageLinkSerializer(serializers.ModelSerializer):
 
         existing_links_count = UsageLink.objects.filter(usage__user=user).count()
 
-        if existing_links_count >= 1 and not getattr(user, 'is_premium', False):
-            raise serializers.ValidationError({
-                "premium_required": "Sizda bitta bepul havola mavjud. Yana link qo'shish uchun Premium sotib olishingiz kerak!"
-            })
+        if existing_links_count >= 1:
+            is_staff = getattr(user, 'is_staff', False)
+            is_premium = getattr(user, 'is_premium', False)
+            
+            if not (is_staff or is_premium):
+                raise serializers.ValidationError({
+                    "premium_required": "Sizda bitta bepul havola mavjud. Yana link qo'shish uchun Premium sotib olishingiz kerak!"
+                })
 
         return attrs
 

@@ -11,12 +11,11 @@ from usage.utils import send_product_to_telegram, get_handle_from_link
 from .serializers import TelegramSyncSerializer
 
 
-
 class SyncMultipleCategoriesToTelegramAPIView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     @swagger_auto_schema(
-        operation_summary="Kategoriyalarni kanallarga yuborish",
+        operation_summary="Kategoriyalarni tegishli kanallarga saralab yuborish",
         request_body=TelegramSyncSerializer,
         tags=['Telegram-Bot']
     )
@@ -32,13 +31,13 @@ class SyncMultipleCategoriesToTelegramAPIView(APIView):
         for cat_id in category_ids:
             category_obj = Category.objects.filter(id=cat_id, owner=request.user).first()
             if not category_obj:
-                results.append({"id": cat_id, "status": "Kategoriya topilmadi yoki sizniki emas"})
+                results.append({"id": cat_id, "status": "Kategoriya topilmadi"})
                 continue
 
             connections = LinkConnect.objects.filter(category=category_obj, usage__user=request.user)
             
             if not connections.exists():
-                results.append({"category": category_obj.name, "status": "Hech qanday guruhga ulanmagan"})
+                results.append({"category": category_obj.name, "status": "Ushbu kategoriya hech qanday kanalga ulanmagan"})
                 continue
 
             products = Product.objects.filter(category=category_obj)
@@ -61,11 +60,12 @@ class SyncMultipleCategoriesToTelegramAPIView(APIView):
                         )
                         if success:
                             cat_sent_count += 1
+                        
                         time.sleep(0.3)
 
             results.append({
                 "category": category_obj.name,
-                "products_found": products.count(),
+                "products_count": products.count(),
                 "messages_sent": cat_sent_count
             })
             total_sent_overall += cat_sent_count

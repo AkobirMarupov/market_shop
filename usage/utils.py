@@ -19,9 +19,17 @@ def send_product_to_telegram(chat_id, product, channel_link):
     url_photo = f"https://api.telegram.org/bot{bot}/sendPhoto"
     url_text = f"https://api.telegram.org/bot{bot}/sendMessage"
     
+
+    formatted_price = f"{int(product.price):,}".replace(",", " ")
+    
+    if product.currency == 'usd':
+        price_display = f"{formatted_price} $"
+    else:
+        price_display = f"{formatted_price} so'm"
+    
     caption = (
         f"🛍 <b>{product.name}</b>\n\n"
-        f"💰 Narxi: {product.price:,} so'm\n"
+        f"💰 Narxi: {price_display}\n"
         f"📝 Tavsif: {product.description or 'Mavjud emas'}\n\n"
         f"🔗 <a href='{channel_link}'>Kanalga obuna bo'ling</a>"
     )
