@@ -21,19 +21,23 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'category', 'display_image')
-    list_filter = ('category',)
-    search_fields = ('name', 'description')
+    
+    list_display = ('display_image', 'name', 'brand', 'price', 'currency', 'size', 'color', 'category')
+    list_filter = ('category', 'brand', 'color')
+    search_fields = ('name', 'brand', 'size')
+    fields = (
+        'owner', 'name', 'category', 'brand', 
+        ('price', 'currency'), 
+        ('size', 'color', 'material'), 
+        'description', 'image', 'telegram_message_id'
+    )
 
     def display_image(self, obj):
         if obj.image:
-            img_url = obj.image.url
             return format_html(
-                '<a href="{0}" target="_blank">'
-                '<img src="{0}" style="width: 50px; height: 50px; border-radius: 5px; object-fit: cover;" />'
-                '</a>',
-                img_url
+                '<img src="{}" style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;" />',
+                obj.image.url
             )
         return "Rasm yo'q"
-    display_image.short_description = 'Image'
-
+    
+    display_image.short_description = 'Rasm'

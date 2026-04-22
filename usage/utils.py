@@ -26,9 +26,23 @@ def send_product_to_telegram(chat_id, product, channel_link):
         price_display = f"{formatted_price} $"
     else:
         price_display = f"{formatted_price} so'm"
-    
+    """
+    brand
+    size
+    color
+    material
+
+    Brend
+    O'lchami
+    Rangi
+    Materiali
+"""
     caption = (
         f"🛍 <b>{product.name}</b>\n\n"
+        f"🏷️ Brend: <b>{product.brand}</b>\n"
+        f"📏 O'lchami: <b>{product.size}</b>\n"
+        f"🎨 Rangi: <b>{product.color}</b>\n"
+        f"🧵 Materiali: <b>{product.material}</b>\n"
         f"💰 Narxi: {price_display}\n"
         f"📝 Tavsif: {product.description or 'Mavjud emas'}\n\n"
         f"🔗 <a href='{channel_link}'>Kanalga obuna bo'ling</a>"

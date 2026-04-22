@@ -1,26 +1,36 @@
 import os
+import sys
 import django
 import asyncio
 import logging
 
-# 1-QADAM: Sozlamalarni ko'rsatish
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings') 
+# 1. Loyiha yo'lini sozlash
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 
-# 2-QADAM: Djangoni ishga tushirish (BU HAMMASIDAN OLDIN BO'LISHI SHART)
+# 2. Django muhitini yuklash
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings') 
 django.setup()
 
-# 3-QADAM: Faqat setup'dan keyin bot va handlerlarni import qilish
-from shop_bot.bots import handlers 
+# 3. Importlarni django.setup() dan keyin qilamiz
 from shop_bot.bots.loader import bot, dp
+from shop_bot.bots.handlers import start, chat # Alohida routerlarni import qilish
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
+    )
     
-    # Routerlarni ulash
-    for router in handlers.routers:
-        dp.include_router(router)
+    # Routerlarni tartib bilan ulash
+    # include_router bir nechta routerni ham qabul qiladi
+    dp.include_routers(
+        start.router,
+        chat.router
+    )
     
-    print("Bot ishga tushdi...")
+    print("🚀 Bot ishga tushdi...")
+    
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
@@ -28,4 +38,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        print("Bot to'xtatildi!")
+        print("\n🛑 Bot to'xtatildi!")

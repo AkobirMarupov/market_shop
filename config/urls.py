@@ -33,7 +33,7 @@ urlpatterns = [
 
     path('account/', include('account.urls')),
     path('', include('product.urls')),
-   #  path('api/bot/', include('shop_bot.urls')),
+    path('api/bot/', include('shop_bot.urls')),
     path('', include('usage.urls'))
 ]
 
