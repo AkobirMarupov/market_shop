@@ -1,143 +1,74 @@
 from django.db import models
-from PIL import Image
-from io import BytesIO
-from account.models import User
-from django.core.files.base import ContentFile
+from django.contrib.auth import get_user_model
+from product.models import Product
 from common.models import BaseModel
+from usage.models import UsageLink
+
+User = get_user_model()
+
+class TelegramUser(BaseModel):
+    chat_id = models.BigIntegerField(unique=True)
+    full_name = models.CharField(max_length=255)
+    username = models.CharField(max_length=255, null=True, blank=True)
+    phone_number = models.CharField(max_length=20, null=True, blank=True)
+    
+    def __str__(self):
+        return self.full_name
 
 
-STATUS = [
-    ("1", "New"),
-    ("2", "Answered"),
-]
-
-class Channel(BaseModel):
-    name = models.CharField(max_length=100, unique=True)
-    user = models.IntegerField()
-
-    class Meta:
-        db_table = 'channel'
-        verbose_name = 'Channel'
-        verbose_name_plural = 'Channels'
+class OrderChat(BaseModel):
+ 
+    STATUS_CHOICES = [
+        ('new', 'Yangi'),
+        ('active', 'Jarayonda'),
+        ('completed', 'Yakunlangan'),
+    ]
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='order_chats', null=True, blank=True)
+    usage_link = models.ForeignKey(UsageLink, on_delete=models.SET_NULL, null=True, blank=True) # Qaysi linkdan keldi?
+    customer = models.ForeignKey(TelegramUser, on_delete=models.CASCADE, related_name='orders')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='new')
+    
 
     def __str__(self):
-        return self.name
+        return f"Chat {self.id}: {self.customer.full_name} - {self.product.name if self.product else 'Noma`lum'}"
 
-
-class BotUser(BaseModel):
-    user = models.IntegerField(null=True, blank=True)
-    user_id = models.CharField(max_length=120)
-    name = models.CharField(max_length=120, null=True, blank=True)
-    username = models.CharField(max_length=120, null=True, blank=True)
-    profile = models.ImageField(upload_to='botusers/', null=True, blank=True)
-    channel = models.ForeignKey(Channel, on_delete=models.SET_NULL, null=True, blank=True, related_name='bot_users')
-
-
-    def save(self, *args, **kwargs):
-        if self.profile:
-            try:
-                img = Image.open(self.profile)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                buffer = BytesIO()
-                img.save(buffer, format="WEBP", quality=80)
-                file_name = self.profile.name.split('.')[0] + ".webp"
-                self.profile.save(file_name, ContentFile(buffer.getvalue()), save=False)
-            except Exception as e:
-                print("Image convert error:", e)
-
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return self.name or self.username or str(self.user_id)
-
-
-class Product(BaseModel):
-    user = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='posts')
-    post_user = models.IntegerField(blank=True, null=True)
-    title = models.CharField(max_length=120, null=True, blank=True)
-    description = models.CharField(max_length=255, null=True, blank=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10, default="UZS")
-    image = models.ImageField(upload_to='posts/')
-
-
-    def save(self, *args, **kwargs):
-        if self.image:
-            try:
-                img = Image.open(self.image)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                buffer = BytesIO()
-                img.save(buffer, format="WEBP", quality=80)
-                file_name = self.image.name.split('.')[0] + ".webp"
-                self.image.save(file_name, ContentFile(buffer.getvalue()), save=False)
-            except Exception as e:
-                print("Post image convert error:", e)
-
-        super().save(*args, **kwargs)
-
-    class Meta:
-        db_table = 'post'
-        verbose_name = 'Post'
-        verbose_name_plural = 'Posts'
-
-    def __str__(self):
-        return self.title
 
 class Message(BaseModel):
-    user = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='messages')
-    post = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
-    message = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='feedbacks/', null=True, blank=True)
-    file = models.FileField(upload_to='feedbacks/', null=True, blank=True)
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS, default="1")
+    SENDER_CHOICES = [
+        (0, 'Admin'),
+        (1, 'Xaridor'),
+    ]
 
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages', null=True, blank=True)
+    order_chat = models.ForeignKey('OrderChat', on_delete=models.CASCADE, related_name='messages')
+    sender_type = models.IntegerField(choices=SENDER_CHOICES)
+    text = models.TextField(null=True, blank=True)
+    image = models.ImageField(upload_to='messages/images/', null=True, blank=True)
+    video = models.FileField(upload_to='messages/videos/', null=True, blank=True)
+    file = models.FileField(upload_to='messages/files/', null=True, blank=True)
+    is_image = models.BooleanField(default=False)
+    is_video = models.BooleanField(default=False)
+    is_pdf = models.BooleanField(default=False)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    telegram_message_id = models.BigIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = "Xabar"
+        verbose_name_plural = "Xabarlar"
+
+    def __str__(self):
+        sender = self.get_sender_type_display()
+        return f"Msg {self.id} | {sender} | Chat: {self.order_chat.id}"
 
     def save(self, *args, **kwargs):
         if self.image:
-            try:
-                img = Image.open(self.image)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                buffer = BytesIO()
-                img.save(buffer, format="WEBP", quality=80)
-                file_name = self.image.name.split('.')[0] + ".webp"
-                self.image.save(file_name, ContentFile(buffer.getvalue()), save=False)
-            except Exception as e:
-                print("Post image convert error:", e)
+            self.is_image = True
+        if self.video:
+            self.is_video = True
+        if self.file and self.file.name.endswith('.pdf'):
+            self.is_pdf = True
+            
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.user} - {self.message[:20] if self.message else 'No text'}"
-
-class AdminMessage(BaseModel):
-    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_messages')
-    user = models.ForeignKey(BotUser, on_delete=models.CASCADE, related_name='admin_messages')
-    message_id = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='admin_messages')
-    message = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='admin_messages/', null=True, blank=True)
-    file = models.FileField(upload_to='admin_messages/', null=True, blank=True)
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS, default="1")
-
-
-    def save(self, *args, **kwargs):
-        if self.image:
-            try:
-                img = Image.open(self.image)
-                if img.mode in ("RGBA", "P"):
-                    img = img.convert("RGB")
-                buffer = BytesIO()
-                img.save(buffer, format="WEBP", quality=80)
-                file_name = self.image.name.split('.')[0] + ".webp"
-                self.image.save(file_name, ContentFile(buffer.getvalue()), save=False)
-            except Exception as e:
-                print("Post image convert error:", e)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.user} - {self.message[:20] if self.message else 'No text'}"
