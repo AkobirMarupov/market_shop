@@ -10,6 +10,7 @@ class TelegramUserSerializer(serializers.ModelSerializer):
 
 
 class MessageDetailSerializer(serializers.ModelSerializer):
+    video = serializers.FileField(read_only=True)
     class Meta:
         model = Message
         fields = [
@@ -20,10 +21,7 @@ class MessageDetailSerializer(serializers.ModelSerializer):
             'video', 
             'file', 
             'latitude', 
-            'longitude', 
-            'is_image', 
-            'is_video', 
-            'is_pdf', 
+            'longitude',
             'created_at'
         ]
 
@@ -35,7 +33,6 @@ class OrderChatSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     usage_title = serializers.CharField(source='usage_link.usage.title', read_only=True)
     source_link = serializers.URLField(source='usage_link.link', read_only=True)
-    
     replay = MessageDetailSerializer(source='messages', many=True, read_only=True)
 
     class Meta:

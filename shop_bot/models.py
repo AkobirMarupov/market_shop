@@ -3,6 +3,12 @@ from django.contrib.auth import get_user_model
 from product.models import Product
 from common.models import BaseModel
 from usage.models import UsageLink
+import os
+import datetime
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
+
 
 User = get_user_model()
 
@@ -47,9 +53,6 @@ class Message(BaseModel):
     image = models.ImageField(upload_to='messages/images/', null=True, blank=True)
     video = models.FileField(upload_to='messages/videos/', null=True, blank=True)
     file = models.FileField(upload_to='messages/files/', null=True, blank=True)
-    is_image = models.BooleanField(default=False)
-    is_video = models.BooleanField(default=False)
-    is_pdf = models.BooleanField(default=False)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     telegram_message_id = models.BigIntegerField(null=True, blank=True)
@@ -64,11 +67,37 @@ class Message(BaseModel):
         return f"Msg {self.id} | {sender} | Chat: {self.order_chat.id}"
 
     def save(self, *args, **kwargs):
-        if self.image:
-            self.is_image = True
-        if self.video:
-            self.is_video = True
-        if self.file and self.file.name.endswith('.pdf'):
-            self.is_pdf = True
+        if self.image and hasattr(self.image, 'file'):
+            try:
+                if not self.image.name.lower().endswith('.webp'):
+                    img = Image.open(self.image)
+                    
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGBA")
+                    else:
+                        img = img.convert("RGB")
+                    
+                    output = BytesIO()
+                    img.save(output, format='WEBP', quality=80)
+                    output.seek(0)
+                    
+                    current_name = os.path.basename(self.image.name)
+                    base_name = os.path.splitext(current_name)[0]
+                    
+                    self.image.save(
+                        f"{base_name}.webp", 
+                        ContentFile(output.read()), 
+                        save=False
+                    )
+            except Exception as e:
+                print(f"Rasm konvertatsiyasida xato: {e}")
+
+        if self.video and not self.video.name:
+            now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.video.name = f"video_{now}.mp4"
             
+        if self.file and not self.file.name:
+            now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.file.name = f"file_{now}"
+
         super().save(*args, **kwargs)

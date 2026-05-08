@@ -13,7 +13,6 @@ from shop_bot.bots.utils import send_telegram_message
 from .serializer import (
     TelegramUserSerializer, 
     OrderChatSerializer, 
-    MessageDetailSerializer,
     MessageCreateSerializer
 )
 
@@ -46,7 +45,7 @@ class OrderChatListAPIView(APIView):
         if status_filter:
             chats = chats.filter(status=status_filter)
             
-        serializer = OrderChatSerializer(chats, many=True)
+        serializer = OrderChatSerializer(chats, many=True, context={'request': request})
         return Response(serializer.data)
 
     @swagger_auto_schema(request_body=MessageCreateSerializer)

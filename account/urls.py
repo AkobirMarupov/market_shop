@@ -14,4 +14,3 @@ urlpatterns = [
     path('logout/', LogoutAPIView.as_view(), name='logout')
     
 ]
-

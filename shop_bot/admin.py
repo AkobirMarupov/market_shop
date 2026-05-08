@@ -10,20 +10,17 @@ class MessageInline(admin.TabularInline):
     readonly_fields = ('created_at', 'preview_content')
     fields = ('sender_type', 'text', 'preview_content', 'latitude', 'longitude')
     can_delete = False
-    
+
+    # Inline ichida preview ko'rsatish funksiyasi
     def preview_content(self, obj):
         if obj.image:
-            return format_html('<img src="{}" style="width: 80px; height:auto; border-radius:5px;">', obj.image.url)
+            return format_html('<img src="{}" width="80" style="border-radius:5px;"/>', obj.image.url)
         if obj.video:
-            return format_html('<span style="color: blue;">🎥 Video mavjud</span>')
+            return "🎥 Video"
         if obj.file:
-            return format_html('<a href="{}" target="_blank">📄 Faylni ochish</a>', obj.file.url)
-        if obj.latitude and obj.longitude:
-            return format_html('<span style="color: green;">📍 Lokatsiya</span>')
-        return "Fayl yo'q"
-    
-    preview_content.short_description = "Media/Fayl"
-
+            return "📄 Fayl/PDF"
+        return "Matn"
+    preview_content.short_description = "Media"
 
 @admin.register(TelegramUser)
 class TelegramUserAdmin(admin.ModelAdmin):
@@ -45,27 +42,27 @@ class OrderChatAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     list_display = ('id', 'order_chat', 'sender_type', 'short_text', 'has_media', 'created_at')
-    list_filter = ('sender_type', 'is_image', 'is_video', 'is_pdf', 'created_at')
     readonly_fields = ('created_at', 'display_media')
-    search_fields = ('text', 'order_chat__customer__full_name')
 
     def short_text(self, obj):
-        if obj.text:
-            return obj.text[:50] + "..." if len(obj.text) > 50 else obj.text
-        return "Matn yo'q"
-    short_text.short_description = "Xabar matni"
+        return (obj.text[:50] + '...') if obj.text and len(obj.text) > 50 else obj.text
 
     def has_media(self, obj):
-        return obj.is_image or obj.is_video or obj.is_pdf
-    has_media.boolean = True
-    has_media.short_description = "Media bormi?"
+        icons = ""
+        if obj.image: icons += "🖼 "
+        if obj.video: icons += "🎥 "
+        if obj.file: icons += "📄 "
+        return icons or "➖"
+    has_media.short_description = "Media"
 
     def display_media(self, obj):
+        html = ""
         if obj.image:
-            return format_html('<img src="{}" style="max-width: 300px; height:auto;">', obj.image.url)
+            html += format_html('<img src="{}" width="200" style="margin-bottom:10px; display:block; border-radius:5px;"/>', obj.image.url)
         if obj.video:
-            return format_html('<video width="320" height="240" controls><source src="{}" type="video/mp4"></video>', obj.video.url)
+            html += format_html('<video src="{}" width="300" controls style="display:block; margin-bottom:10px;"></video>', obj.video.url)
         if obj.file:
-            return format_html('<a href="{}" target="_blank">Faylni yuklab olish (PDF/Doc)</a>', obj.file.url)
-        return "Media yo'q"
-    display_media.short_description = "Media ko'rinishi"
+            html += format_html('<a href="{}" target="_blank">📄 Faylni yuklab olish</a>', obj.file.url)
+        return format_html(html) if html else "Media yo'q"
+
+    
